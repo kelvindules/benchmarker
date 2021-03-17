@@ -8,19 +8,27 @@ import java.util.List;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import dev.dules.annotation.SensitiveInfo;
 import dev.dules.util.ClassUtils;
 
+@Component
+@Aspect
 public class Benchmarker {
 	static final Logger logger = LoggerFactory.getLogger(Benchmarker.class);
 
-	private boolean loggingEnabled = true;
-	private boolean logMethodResult = true;
-	private boolean logMethodResultObjectToString = true;
+	@Value("${benchmarker.logging.enabled: true}")
+	boolean loggingEnabled;
+	@Value("${benchmarker.logging.show-method-result: false}")
+	boolean logMethodResult;
+	@Value("${benchmaker.logging.serialize-method-result: false}")
+	boolean serializeMethodResult;
 
 	static final String SENSITIVE_PARAMETER_ANNOTATION = SensitiveInfo.class.getName();
 	static final String BENCHMARK_JOINPOINT_TEMPLATE = "[R] {} -> {}: {}";
@@ -51,7 +59,7 @@ public class Benchmarker {
 			Object result = joinPoint.proceed();
 
 			if (loggingEnabled && logMethodResult) {
-				if (logMethodResultObjectToString
+				if (serializeMethodResult
 						|| (result instanceof String && !ClassUtils.isPrimitiveOrWrapper(result.getClass()))) {
 					logger.info(BENCHMARK_JOINPOINT_TEMPLATE, className, methodName, result);
 				} else {
