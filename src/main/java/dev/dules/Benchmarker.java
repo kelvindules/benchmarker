@@ -27,7 +27,7 @@ public class Benchmarker {
 	boolean loggingEnabled;
 	@Value("${benchmarker.logging.show-method-result: false}")
 	boolean logMethodResult;
-	@Value("${benchmaker.logging.serialize-method-result: false}")
+	@Value("${benchmarker.logging.serialize-method-result: false}")
 	boolean serializeMethodResult;
 
 	static final String SENSITIVE_PARAMETER_ANNOTATION = SensitiveInfo.class.getName();
