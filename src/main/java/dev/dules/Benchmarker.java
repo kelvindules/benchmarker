@@ -6,6 +6,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -33,6 +39,16 @@ public class Benchmarker {
 	static final String SENSITIVE_PARAMETER_ANNOTATION = SensitiveInfo.class.getName();
 	static final String BENCHMARK_JOINPOINT_TEMPLATE = "[R] {} -> {}: {}";
 	static final String BENCHMARK_TEMPLATE = "[B] {} -> {}{} em {} ms";
+	private static final ObjectMapper mapper;
+	private static final ObjectWriter writer;
+
+	static {
+		mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		mapper.registerModule(new JavaTimeModule());
+		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+		writer = mapper.writerWithDefaultPrettyPrinter();
+	}
 
 	@Around("@annotation(dev.dules.annotation.Benchmarked)")
 	public Object benchmarkedMethod(final ProceedingJoinPoint joinPoint) throws Throwable {
@@ -61,7 +77,10 @@ public class Benchmarker {
 			if (loggingEnabled && logMethodResult) {
 				if (serializeMethodResult
 						|| (result instanceof String && !ClassUtils.isPrimitiveOrWrapper(result.getClass()))) {
-					logger.info(BENCHMARK_JOINPOINT_TEMPLATE, className, methodName, result);
+					
+					final String serializedResult = writer.writeValueAsString(result);
+
+					logger.info(BENCHMARK_JOINPOINT_TEMPLATE, className, methodName, serializedResult);
 				} else {
 					logger.info(BENCHMARK_JOINPOINT_TEMPLATE, className, methodName,
 							result != null ? result.getClass().getSimpleName() : null);
