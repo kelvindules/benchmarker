@@ -1,4 +1,4 @@
-package dev.dules.util;
+package dev.dules.methodlogger.util;
 
 import java.util.IdentityHashMap;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package dev.dules;
+package dev.dules.methodlogger;
 
 import java.lang.annotation.Annotation;
 import java.time.Duration;
@@ -21,19 +21,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import dev.dules.annotation.SensitiveInfo;
-import dev.dules.util.ClassUtils;
+import dev.dules.methodlogger.annotation.SensitiveInfo;
+import dev.dules.methodlogger.util.ClassUtils;
 
 @Component
 @Aspect
-public class Benchmarker {
-	static final Logger logger = LoggerFactory.getLogger(Benchmarker.class);
+public class MethodLogger {
+	static final Logger logger = LoggerFactory.getLogger(MethodLogger.class);
 
-	@Value("${benchmarker.logging.enabled: true}")
+	@Value("${methodlogger.logging.enabled: true}")
 	boolean loggingEnabled;
-	@Value("${benchmarker.logging.show-method-result: false}")
+	@Value("${methodlogger.logging.show-method-result: false}")
 	boolean logMethodResult;
-	@Value("${benchmarker.logging.serialize-method-result: false}")
+	@Value("${methodlogger.logging.serialize-method-result: false}")
 	boolean serializeMethodResult;
 
 	static final String SENSITIVE_PARAMETER_ANNOTATION = SensitiveInfo.class.getName();

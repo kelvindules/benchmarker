@@ -1,4 +1,4 @@
-package dev.dules.annotation;
+package dev.dules.methodlogger.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,5 +7,5 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface SensitiveInfo {
+public @interface LogMethod {
 }

@@ -1,4 +1,4 @@
-package dev.dules.annotation;
+package dev.dules.methodlogger.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,10 +7,10 @@ import java.lang.annotation.Target;
 
 import org.springframework.context.annotation.Import;
 
-import dev.dules.Benchmarker;
+import dev.dules.methodlogger.MethodLogger;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Import({Benchmarker.class})
-public @interface EnableBenchmarker {
+@Import({MethodLogger.class})
+public @interface EnableMethodLogger {
 }

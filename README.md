@@ -1,1 +1,1 @@
-# benchmarker [![](https://jitpack.io/v/kelvindules/benchmarker.svg)](https://jitpack.io/#kelvindules/benchmarker)
+# method-logger [![](https://jitpack.io/v/kelvindules/method-logger.svg)](https://jitpack.io/#kelvindules/method-logger)

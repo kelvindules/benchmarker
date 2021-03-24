@@ -5,10 +5,10 @@
   <modelVersion>4.0.0</modelVersion>
 
 	<groupId>dev.dules</groupId>
-	<artifactId>benchmarker</artifactId>
+	<artifactId>method-logger</artifactId>
 	<version>1.0-SNAPSHOT</version>
 
-	<name>benchmarker</name>
+	<name>method-logger</name>
 	<url>https://dules.dev</url>
 
 	<packaging>jar</packaging>
@@ -74,7 +74,7 @@
 					<configuration>
 						<archive>
 						<manifest>
-							<mainClass>dules.dev.benchmarker</mainClass>
+							<mainClass>dules.dev.method-logger</mainClass>
 						</manifest>
 						</archive>
 						<descriptorRefs>
