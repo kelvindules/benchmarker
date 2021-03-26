@@ -11,6 +11,6 @@ import dev.dules.methodlogger.MethodLogger;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Import({MethodLogger.class})
+@Import({ MethodLogger.class })
 public @interface EnableMethodLogger {
 }

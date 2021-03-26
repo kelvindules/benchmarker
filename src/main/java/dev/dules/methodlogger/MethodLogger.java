@@ -27,118 +27,118 @@ import dev.dules.methodlogger.util.ClassUtils;
 @Component
 @Aspect
 public class MethodLogger {
-	static final Logger logger = LoggerFactory.getLogger(MethodLogger.class);
+    static final Logger logger = LoggerFactory.getLogger(MethodLogger.class);
 
-	@Value("${methodlogger.logging.enabled: true}")
-	boolean loggingEnabled;
-	@Value("${methodlogger.logging.show-method-result: false}")
-	boolean logMethodResult;
-	@Value("${methodlogger.logging.serialize-method-result: false}")
-	boolean serializeMethodResult;
+    @Value("${methodlogger.logging.enabled: true}")
+    boolean loggingEnabled;
+    @Value("${methodlogger.logging.show-method-result: false}")
+    boolean logMethodResult;
+    @Value("${methodlogger.logging.serialize-method-result: false}")
+    boolean serializeMethodResult;
 
-	static final String SENSITIVE_PARAMETER_ANNOTATION = SensitiveInfo.class.getName();
-	static final String BENCHMARK_JOINPOINT_TEMPLATE = "[R] {} -> {}: {}";
-	static final String BENCHMARK_TEMPLATE = "[B] {} -> {}{} em {} ms";
-	private static final ObjectMapper mapper;
-	private static final ObjectWriter writer;
+    static final String SENSITIVE_PARAMETER_ANNOTATION = SensitiveInfo.class.getName();
+    static final String LOG_JOINPOINT_TEMPLATE = "[R] {} -> {}: {}";
+    static final String LOG_TEMPLATE = "[L] {} -> {}{} em {} ms";
+    private static final ObjectMapper mapper;
+    private static final ObjectWriter writer;
 
-	static {
-		mapper = new ObjectMapper();
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.registerModule(new JavaTimeModule());
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		writer = mapper.writerWithDefaultPrettyPrinter();
-	}
+    static {
+        mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        writer = mapper.writerWithDefaultPrettyPrinter();
+    }
 
-	@Around("@annotation(dev.dules.annotation.Benchmarked)")
-	public Object benchmarkedMethod(final ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("@annotation(dev.dules.annotation.LogMethod)")
+    public Object loggedMethod(final ProceedingJoinPoint joinPoint) throws Throwable {
 
-		final Object target = joinPoint.getTarget();
-		final String className = target.getClass().getSimpleName();
+        final Object target = joinPoint.getTarget();
+        final String className = target.getClass().getSimpleName();
 
-		final String methodName = joinPoint.getSignature().getName();
-		final Object[] methodArgs = joinPoint.getArgs();
+        final String methodName = joinPoint.getSignature().getName();
+        final Object[] methodArgs = joinPoint.getArgs();
 
-		final MethodSignature methodSign = (MethodSignature) joinPoint.getSignature();
+        final MethodSignature methodSign = (MethodSignature) joinPoint.getSignature();
 
-		final Annotation[][] annotationMatrix = this.getAnnotations(target, methodName,
-				this.getParameterTypes(methodSign));
+        final Annotation[][] annotationMatrix = this.getAnnotations(target, methodName,
+                this.getParameterTypes(methodSign));
 
-		final List<Object> sanitizedArgs = this.getSanitizedArgs(methodArgs, annotationMatrix);
+        final List<Object> sanitizedArgs = this.getSanitizedArgs(methodArgs, annotationMatrix);
 
-		Instant start = Instant.now();
-		Instant finish;
-		try {
+        Instant start = Instant.now();
+        Instant finish;
+        try {
 
-			start = Instant.now();
+            start = Instant.now();
 
-			Object result = joinPoint.proceed();
+            Object result = joinPoint.proceed();
 
-			if (loggingEnabled && logMethodResult) {
-				if (serializeMethodResult
-						|| (result instanceof String && !ClassUtils.isPrimitiveOrWrapper(result.getClass()))) {
-					
-					final String serializedResult = writer.writeValueAsString(result);
+            if (loggingEnabled && logMethodResult) {
+                if (serializeMethodResult
+                        || (result instanceof String && !ClassUtils.isPrimitiveOrWrapper(result.getClass()))) {
 
-					logger.info(BENCHMARK_JOINPOINT_TEMPLATE, className, methodName, serializedResult);
-				} else {
-					logger.info(BENCHMARK_JOINPOINT_TEMPLATE, className, methodName,
-							result != null ? result.getClass().getSimpleName() : null);
-				}
-			}
+                    final String serializedResult = writer.writeValueAsString(result);
 
-			return result;
+                    logger.info(LOG_JOINPOINT_TEMPLATE, className, methodName, serializedResult);
+                } else {
+                    logger.info(LOG_JOINPOINT_TEMPLATE, className, methodName,
+                            result != null ? result.getClass().getSimpleName() : null);
+                }
+            }
 
-		} finally {
+            return result;
 
-			finish = Instant.now();
+        } finally {
 
-			final long executionTime = Duration.between(start, finish).toMillis();
+            finish = Instant.now();
 
-			if (loggingEnabled) {
-				logger.info(BENCHMARK_TEMPLATE, className, methodName, sanitizedArgs, executionTime);
-			}
+            final long executionTime = Duration.between(start, finish).toMillis();
 
-		}
-	}
+            if (loggingEnabled) {
+                logger.info(LOG_TEMPLATE, className, methodName, sanitizedArgs, executionTime);
+            }
 
-	private List<Object> getSanitizedArgs(final Object[] args, final Annotation[][] matrix) {
-		final List<Object> sanitizedArgs = new ArrayList<>();
-		for (int x = 0; x < args.length; x++) {
+        }
+    }
 
-			if (args[x] == null) {
-				continue;
-			}
+    private List<Object> getSanitizedArgs(final Object[] args, final Annotation[][] matrix) {
+        final List<Object> sanitizedArgs = new ArrayList<>();
+        for (int x = 0; x < args.length; x++) {
 
-			boolean isSensitive = false;
-			for (final Annotation annotation : matrix[x]) {
-				if (annotation.annotationType().getName().contains(SENSITIVE_PARAMETER_ANNOTATION)) {
-					isSensitive = true;
-				}
-			}
-			if (!isSensitive) {
-				String arg = "";
-				if (args[x] instanceof String || ClassUtils.isPrimitiveOrWrapper(args[x].getClass())) {
-					arg = String.valueOf(args[x]);
-				} else {
-					arg = args[x].getClass().getSimpleName();
-				}
-				sanitizedArgs.add(arg);
-			}
-		}
-		return sanitizedArgs;
-	}
+            if (args[x] == null) {
+                continue;
+            }
 
-	private Annotation[][] getAnnotations(final Object target, final String methodName,
-			final Class<?>[] parameterTypes) {
-		try {
-			return target.getClass().getMethod(methodName, parameterTypes).getParameterAnnotations();
-		} catch (final NoSuchMethodException ex) {
-			return new Annotation[][] {};
-		}
-	}
+            boolean isSensitive = false;
+            for (final Annotation annotation : matrix[x]) {
+                if (annotation.annotationType().getName().contains(SENSITIVE_PARAMETER_ANNOTATION)) {
+                    isSensitive = true;
+                }
+            }
+            if (!isSensitive) {
+                String arg = "";
+                if (args[x] instanceof String || ClassUtils.isPrimitiveOrWrapper(args[x].getClass())) {
+                    arg = String.valueOf(args[x]);
+                } else {
+                    arg = args[x].getClass().getSimpleName();
+                }
+                sanitizedArgs.add(arg);
+            }
+        }
+        return sanitizedArgs;
+    }
 
-	private Class<?>[] getParameterTypes(final MethodSignature signature) {
-		return signature.getMethod().getParameterTypes();
-	}
+    private Annotation[][] getAnnotations(final Object target, final String methodName,
+            final Class<?>[] parameterTypes) {
+        try {
+            return target.getClass().getMethod(methodName, parameterTypes).getParameterAnnotations();
+        } catch (final NoSuchMethodException ex) {
+            return new Annotation[][] {};
+        }
+    }
+
+    private Class<?>[] getParameterTypes(final MethodSignature signature) {
+        return signature.getMethod().getParameterTypes();
+    }
 }
