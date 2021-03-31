@@ -14,12 +14,13 @@ public class MyClass() {
 ```
 Basic log output:
 ```
-[L] MyClass -> getObject() in 1 ms
+MyClass -> getSomething(arg1, arg2) in 1 ms
 ```
 Log output with serialization on:
 ```
-[L] MyClass -> getObject() in 1 ms
-[R] MyClass -> getObject(): { "field1": "value1" }
+MyClass -> getSomething(arg1, arg2): {
+  "field1": "value1"
+} in 1 ms
 ```
 
 ## Configuring
