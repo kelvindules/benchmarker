@@ -29,16 +29,14 @@ import dev.dules.methodlogger.util.ClassUtils;
 public class MethodLogger {
     static final Logger logger = LoggerFactory.getLogger(MethodLogger.class);
 
-    @Value("${methodlogger.logging.enabled: true}")
+    @Value("${method-logger.logging.enabled: true}")
     boolean loggingEnabled;
-    @Value("${methodlogger.logging.show-method-result: false}")
+    @Value("${method-logger.logging.show-result: false}")
     boolean logMethodResult;
-    @Value("${methodlogger.logging.serialize-method-result: false}")
-    boolean serializeMethodResult;
 
     static final String SENSITIVE_PARAMETER_ANNOTATION = SensitiveInfo.class.getName();
-    static final String LOG_JOINPOINT_TEMPLATE = "[R] {} -> {}: {}";
-    static final String LOG_TEMPLATE = "[L] {} -> {}{} em {} ms";
+    static final String LOG_TEMPLATE = "\n{} -> {}{}: {}[{}]";
+
     private static final ObjectMapper mapper;
     private static final ObjectWriter writer;
 
@@ -46,63 +44,58 @@ public class MethodLogger {
         mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); 
         writer = mapper.writerWithDefaultPrettyPrinter();
     }
 
-    @Around("@annotation(dev.dules.annotation.LogMethod)")
+    @Around("@annotation(dev.dules.methodlogger.annotation.LogMethod)")
     public Object loggedMethod(final ProceedingJoinPoint joinPoint) throws Throwable {
+
+        if (!loggingEnabled) {
+            return joinPoint.proceed();
+        }
 
         final Object target = joinPoint.getTarget();
         final String className = target.getClass().getSimpleName();
-
         final String methodName = joinPoint.getSignature().getName();
-        final Object[] methodArgs = joinPoint.getArgs();
-
-        final MethodSignature methodSign = (MethodSignature) joinPoint.getSignature();
-
-        final Annotation[][] annotationMatrix = this.getAnnotations(target, methodName,
-                this.getParameterTypes(methodSign));
-
-        final List<Object> sanitizedArgs = this.getSanitizedArgs(methodArgs, annotationMatrix);
+        final String sanitizedArgs = this.getArgsAsString(joinPoint);
 
         Instant start = Instant.now();
-        Instant finish;
+        Object result = null;
+
         try {
-
-            start = Instant.now();
-
-            Object result = joinPoint.proceed();
-
-            if (loggingEnabled && logMethodResult) {
-                if (serializeMethodResult
-                        || (result instanceof String && !ClassUtils.isPrimitiveOrWrapper(result.getClass()))) {
-
-                    final String serializedResult = writer.writeValueAsString(result);
-
-                    logger.info(LOG_JOINPOINT_TEMPLATE, className, methodName, serializedResult);
-                } else {
-                    logger.info(LOG_JOINPOINT_TEMPLATE, className, methodName,
-                            result != null ? result.getClass().getSimpleName() : null);
-                }
-            }
-
+            result = joinPoint.proceed();
             return result;
-
         } finally {
 
-            finish = Instant.now();
+            final Instant finish = Instant.now();
 
             final long executionTime = Duration.between(start, finish).toMillis();
+            final String executionTimeString = String.format("%s ms", executionTime);
 
-            if (loggingEnabled) {
-                logger.info(LOG_TEMPLATE, className, methodName, sanitizedArgs, executionTime);
+            String resultString = "";
+
+            if (logMethodResult) {
+                resultString = writer.writeValueAsString(result);
             }
 
+            logger.info(LOG_TEMPLATE, className, methodName, sanitizedArgs, resultString, executionTimeString);
+
+            result = null;
         }
     }
 
-    private List<Object> getSanitizedArgs(final Object[] args, final Annotation[][] matrix) {
+    private String getArgsAsString(final ProceedingJoinPoint joinPoint) {
+        return getSanitizedArgs(joinPoint).toString().replace("[", "(").replace("]", ")");
+    }
+
+    private List<Object> getSanitizedArgs(final ProceedingJoinPoint joinPoint) {
+
+        final Object[] args = joinPoint.getArgs();
+
+        final Annotation[][] matrix = this.getAnnotations(joinPoint.getTarget(), joinPoint.getSignature().getName(),
+                this.getParameterTypes((MethodSignature) joinPoint.getSignature()));
+
         final List<Object> sanitizedArgs = new ArrayList<>();
         for (int x = 0; x < args.length; x++) {
 
